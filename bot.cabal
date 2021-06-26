@@ -25,6 +25,9 @@ source-repository head
 
 library
   exposed-modules:
+      API.DataAPI
+      API.GenericAPI
+      API.Weather
       Bot
       Config
       Lib
