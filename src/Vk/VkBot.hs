@@ -54,3 +54,26 @@ extractTextAndSender u = liftM2 (,) s t
 -- | newUpdates appliese extractTextAndSender to all updates in a Response
 newUpdates :: Maybe VT.Response ->  Maybe [(Int, L8.ByteString)]
 newUpdates r = r >>= rUpdates >>= traverse  extractTextAndSender
+
+-- | Function that actually makes a request to LongPolling API to get updates
+fetchUpdates :: Manager -> Session VkBot -> IO (Maybe VT.Response)
+fetchUpdates manager s = do
+    let req = parseRequest_ (toUrl s)
+    response <- httpLbs req manager
+    let body = responseBody response
+    return (decode body :: Maybe VT.Response)
+
+-- | Function that makes request to the Main API to get access to the LongPolling API
+getSession :: VkBot -> Manager-> IO (Maybe (Session VkBot))
+getSession bot manager= do
+    let req = parseRequest_ (baseUrl bot <> "/groups.getLongPollServer?" <> defaultUrlParams bot)
+    response <- httpLbs req manager
+    return $
+        (decode (responseBody response) :: Maybe VT.Response)
+        >>= rResponse
+
+defaultUrlParams :: VkBot -> String
+defaultUrlParams bot =  "v=5.131&group_id=" <> clubId bot <> "&access_token=" <> token bot
+
+createBot :: C.Config -> VkBot
+createBot (C.Config (C.VkConfig key clubId) _ ) = VkBot "https://api.vk.com/method" key clubId
