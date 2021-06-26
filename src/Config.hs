@@ -119,3 +119,10 @@ $(deriveManyJSON dropPrefixOptions
     [ ''CommandConf
     , ''ApiAuthConf
     ])
+
+readConfig :: FilePath -> IO (Either String Config)
+readConfig filePath = do
+    bytesOrError <- try (B.readFile filePath) :: IO (Either IOError B.ByteString)
+    return $ case bytesOrError of
+        Right bytes -> eitherDecodeStrict bytes
+        Left err -> Left . show $ err
