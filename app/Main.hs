@@ -1,6 +1,11 @@
 module Main where
 
-import Lib
+import System.Environment (getArgs)
+import Lib (start)
 
 main :: IO ()
-main = someFunc
+main = do
+  args <- getArgs
+  case args of
+    [path] -> start path
+    _      -> start "config/config.json"
