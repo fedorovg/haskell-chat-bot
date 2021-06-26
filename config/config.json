@@ -1,0 +1,37 @@
+{
+  "bot": {
+    "platform": "telegram",
+    "telegram": {
+      "token": "<token>"
+    },
+    "vk": {
+      "key": "<key>",
+      "clubId": "<clubId>"
+    }
+  },
+  "api": {
+    "type": "weather",
+    "help": "This is a weather bot. Type in a name of a city to get current weather.",
+    "weather": {
+      "url": "http://api.openweathermap.org/data/2.5/weather",
+      "token": "<token>"
+    },
+    "generic": {
+      "url": "https://the-one-api.dev/v2",
+      "auth": {
+        "tag": "Bearer",
+        "token": "<token>"
+      },
+      "commands": [
+        { "key": "books",
+          "name": "book",
+          "params": 0
+        },
+        { "key": "book",
+          "name": "book",
+          "params": 1
+        }
+      ]
+    }
+    }
+}

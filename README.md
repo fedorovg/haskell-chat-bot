@@ -1,9 +1,24 @@
-# Final Project: Chat bot
+# Haskell Chat Bot
 
-My project idea is to write  a chat bot in haskell, that would work with a public API and serve some some useful information (e.g. local weather, cryptocurrency data).
+Point of this project was to write a chat bot in pure haskell without any platform-specific wrapper libraries.
+After receiving a message this bot retrieves data from extrernal API specified in the config and responds with a formated message.
 
-## Features
+This bot is written in more or less generic fashion and is able to work with multiple messaging platforms and Data APIs based on a config file.
 
-1. Chat bot should be able to read a config file.
-2. Based on that config, bot should work with at least two different platforms (e.g. Telegram, Discord, etc.)
-3. After receiving a command defined in config, bot should fetch data from the API and respond with a fromated message.
+### Bot supports 2 platforms: Telegram and Vk
+
+Vk and telegram were the only sane options, because all other platforms have really comlpex APIs, that are intended to be used with a wrapper library (and with a wrapper, project would have been to easy).
+
+### Platform and data source are lodaded based on config.
+
+Bot reads a JSON file a startup.
+
+###  Data sources:
+
+1. A hardcoded client (`API/Weather.hs`) that comunicates with OpenWeatherAPI.
+2. Generic API client (`API/GenericAPI.hs`), that works with whatever that is defined inside the config file.
+
+## GenericAPI
+
+Since this client isn't meant to work with any particular API, I can't write a formater for API's response, because I have no idea, what I will actually receive. That's why GenericAPI converts JSON it received from a service to yaml, which is argaubly more readable, and then sends it as a response to a user.
+
