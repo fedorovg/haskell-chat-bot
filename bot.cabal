@@ -95,6 +95,11 @@ test-suite bot-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      API.GenericAPISpec
+      ConfigSpec
+      Telegram.TelegramBotSpec
+      UtilsSpec
+      Vk.VkBotSpec
       Paths_bot
   hs-source-dirs:
       test
