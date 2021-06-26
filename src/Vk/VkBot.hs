@@ -3,13 +3,16 @@ module Vk.VkBot where
 
 import Vk.Types as VT
 import Bot
-
-
+import qualified Config as C
+import Network.HTTP.Client
+import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Functor ((<&>))
 import Control.Monad (liftM2)
+import qualified Network.URI.Encode as URI
+import System.Random
 
 -- | VkBot is a data type used as an instance of the Bot class to define interactions with the Vk.
 --  Contains baseUrl, token used for authentication and an id of a Vk group, the bot is attached to. 
@@ -40,10 +43,47 @@ instance Bot VkBot where
     -- | initialSession when we do not have the long polling server yet
     initialSession _ = ServerKeyTs  "" "" "0" 
     -- | getUpdates aquires the long polling server info, if it is not yet present and then uses it get Updates about the new messages from the Vk.
-    getUpdates bot manager session@(ServerKeyTs server key ts) = undefined 
+    getUpdates bot manager session@(ServerKeyTs server key ts) = do
+        mSession <- if session == initialSession bot
+            then getSession bot manager
+            else return $ Just session
+
+        case mSession of
+            Just s -> do
+                mResponse <- fetchUpdates manager s
+                let nSession = nextSession s mResponse
+                let mTextSenderPairs = newUpdates mResponse
+                let textSenderPairs = fromMaybe [] mTextSenderPairs
+                return $ Right (nSession, textSenderPairs)
+            Nothing -> return $ Left "kek"
 
     -- | sendMessage simply sends a message through Vk using VkMessage DTO to a provided destination.
-    sendMessage bot manager dest message = undefined 
+    sendMessage bot manager dest message = do
+        initialRequest <- parseRequest $ baseUrl bot <> "/messages.send"
+        randId <- randomRIO (1000000,  maxBound :: Int) :: IO Int
+        let reqBody = sendMessageURI (VkMessage dest randId (L8.unpack message)) <> "&" <> defaultUrlParams bot
+        let request = initialRequest
+                { method = "POST"
+                , requestBody = RequestBodyLBS $ 
+                    L8.pack reqBody
+                , requestHeaders =
+                     [ ("Content-Type", "application/x-www-form-urlencoded")
+                     ]
+                }
+        response <- httpLbs request manager
+        return $ responseBody response
+        
+
+sendMessageURI :: VkMessage -> String
+sendMessageURI (VkMessage uId rId m) = "user_id=" <> show uId  <> "&random_id="<> show rId <>"&message=" <> URI.encode m
+
+-- | Gets the id of the latest message (if present) and updates the session
+nextSession :: ServerKeyTs -> Maybe VT.Response -> ServerKeyTs
+nextSession (ServerKeyTs s k t) o = ServerKeyTs s k (fromMaybe t newTs)
+    where newTs = o >>= rTs
+
+toUrl :: ServerKeyTs -> String
+toUrl skt = sServer skt <> "?act=a_check&key=" <> sKey skt <> "&ts=" <> sTs skt <> "&wait=25"
 
 -- | extractTextAndSender gets user_id and message text from an update if present
 extractTextAndSender :: VT.Update -> Maybe (Int, L8.ByteString)
