@@ -1,8 +1,17 @@
 module API.GenericAPI where
 
+import API.DataAPI
 import qualified Data.Map as M
-import qualified Config as C 
+import Data.Maybe
+import Data.Text (Text, unpack)
+import qualified Data.ByteString.Lazy.Char8 as L8
+import qualified Data.ByteString.Internal as BI
+import Network.HTTP.Client
+import Data.Aeson
+import qualified Data.Yaml as YML
+import Data.Functor ((<&>))
 import Data.List
+import qualified Config as C
 
 -- | Authentication defines, how our request a authenticated by the API.
 data Authentication
@@ -26,6 +35,22 @@ data GenericAPI
     , gaHelp :: String
     } deriving (Show, Eq)
 
+instance DataAPI GenericAPI where
+  -- | getData parses a text command it receives and response with either a result of that command's invokation or a help message
+  getData api manager message = do
+    let (command, params) = parseCommand api message
+    case command of
+        (Command "help" 0) -> return . L8.pack . gaHelp $ api
+        c                   -> do
+            let url = makeUrl api c params
+            print url
+            initialReq <- parseRequest url
+            let req = applyAuth initialReq (gaAuth api) 
+            response <- httpLbs req manager
+            let mVal = decode . responseBody $ response :: Maybe Value
+            let res = fromMaybe "[GenericAPI ERROR] Configured commands are invalid." (mVal <&> YML.encode)
+            return $ L8.fromStrict res
+
 -- | parseCommand reads through the text message sent by the user and trys to match it with a predefined command. Returns help message command in case of failure 
 parseCommand :: GenericAPI -> String -> (Command, [String])
 parseCommand (GenericAPI _ _ commands _) = f . words
@@ -47,6 +72,11 @@ makeUrl (GenericAPI url auth _ _) (Command name paramNames) params = url <> "/" 
 authToUrl :: Authentication -> String
 authToUrl (QueryParam name val) = "?" <> name <> "=" <> val
 authToUrl _ = ""
+
+-- | applyAuth adds Authorisation header to a http request, if they are requred
+applyAuth :: Request -> Authentication -> Request
+applyAuth r (Bearer token) = r {requestHeaders = [("Authorization", BI.packChars $ "Bearer " <> token)]}
+applyAuth r _ = r
 
 createGenericApi :: C.ApiConfig -> GenericAPI
 createGenericApi (C.GenericApiConfig url auth commands help) = GenericAPI url (authFromConfig auth) (M.fromList $ map commandFromConf commands) help 
