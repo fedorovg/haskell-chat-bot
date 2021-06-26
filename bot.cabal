@@ -35,6 +35,8 @@ library
       Telegram.TelegramBot
       Telegram.Types
       Utils
+      Vk.Types
+      Vk.VkBot
   other-modules:
       Paths_bot
   hs-source-dirs:
