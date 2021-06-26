@@ -60,8 +60,17 @@ instance Bot TelegramBot where
                                 then Left "Failed to fetch updates"
                                 else Right (newSession, []) 
     -- | sendMesasge sends a POST request to the telegram to send a message as a response to a user.
-    
-    sendMessage bot manager dest message = undefined 
+    sendMessage bot manager dest message = do
+        initialRequest <- parseRequest $ fullUrl bot <> "/sendMessage"
+        let request = initialRequest
+                { method = "POST"
+                , requestBody = RequestBodyLBS $ encode (MessageDto dest (L8.unpack message))
+                , requestHeaders =
+                     [ ("Content-Type", "application/json; charset=utf-8")
+                     ]
+                }
+        response <- httpLbs request manager
+        return $ responseBody response
      
 getSession :: TelegramBot -> Manager -> IO (Session TelegramBot)
 -- ^ getSession makes the same request as the getUpdates funtion, but with a negative offset, so we can learn what is the latest message, that was sent to us
