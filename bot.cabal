@@ -29,6 +29,8 @@ library
       Config
       Lib
       Logging
+      Telegram.TelegramBot
+      Telegram.Types
       Utils
   other-modules:
       Paths_bot
