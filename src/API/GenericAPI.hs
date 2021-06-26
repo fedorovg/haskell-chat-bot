@@ -1,6 +1,8 @@
 module API.GenericAPI where
 
 import qualified Data.Map as M
+import qualified Config as C 
+import Data.List
 
 -- | Authentication defines, how our request a authenticated by the API.
 data Authentication
@@ -34,3 +36,26 @@ parseCommand (GenericAPI _ _ commands _) = f . words
           f (command : params) = case M.lookup command commands of
               Just c@(Command name cParams) -> if cParams == length params then (c, params) else (Command "help" 0, [])
               _                             -> (Command "help" 0, [])
+
+-- | makeUrl converts api and command pair into a string use to make an HTTP request
+makeUrl :: GenericAPI -> Command -> [String] -> String
+makeUrl (GenericAPI url auth _ _) (Command name _) [] = url <> "/" <> name <> authToUrl auth
+makeUrl (GenericAPI url auth _ _) (Command name paramNames) params = url <> "/" <> name <> "/" <> combineNamesAndValues params <> authToUrl auth
+    where combineNamesAndValues params = intercalate "/" params 
+
+-- | authToUrl adds a query parameter to the url, if Api requires such Authentication
+authToUrl :: Authentication -> String
+authToUrl (QueryParam name val) = "?" <> name <> "=" <> val
+authToUrl _ = ""
+
+createGenericApi :: C.ApiConfig -> GenericAPI
+createGenericApi (C.GenericApiConfig url auth commands help) = GenericAPI url (authFromConfig auth) (M.fromList $ map commandFromConf commands) help 
+
+commandFromConf :: C.CommandConf -> (String, Command)
+commandFromConf (C.CommandConf key name pars) = (key, Command name pars)
+
+authFromConfig :: C.ApiAuthConf -> Authentication
+authFromConfig = \case
+    C.None -> None
+    C.Bearer t -> Bearer t
+    C.QueryParam n v -> QueryParam n v
