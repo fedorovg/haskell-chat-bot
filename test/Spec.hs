@@ -1,2 +1,10 @@
+import Test.Hspec
+
+import qualified UtilsSpec
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = hspec spec
+
+spec = do
+    describe "Utils" UtilsSpec.spec
+   
