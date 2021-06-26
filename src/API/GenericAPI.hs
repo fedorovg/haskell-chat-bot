@@ -23,3 +23,14 @@ data GenericAPI
     , gaCommands :: M.Map String Command -- ^ A map from command's name to it's definition
     , gaHelp :: String
     } deriving (Show, Eq)
+
+-- | parseCommand reads through the text message sent by the user and trys to match it with a predefined command. Returns help message command in case of failure 
+parseCommand :: GenericAPI -> String -> (Command, [String])
+parseCommand (GenericAPI _ _ commands _) = f . words
+    where f [] = (Command "help" 0, [])
+          f [command] = case M.lookup command commands of
+              Just c@(Command name 0) -> (c, [])
+              _                        -> (Command "help" 0, [])
+          f (command : params) = case M.lookup command commands of
+              Just c@(Command name cParams) -> if cParams == length params then (c, params) else (Command "help" 0, [])
+              _                             -> (Command "help" 0, [])
